@@ -181,6 +181,24 @@ struct bodegas *buscarBodega(struct bodegas *arreglo[maxBodegas], int id){
     return NULL;
 }
 
+struct bodegas *buscarBinarioBodega(struct bodegas *arreglo[maxBodegas], int id){
+    
+    int limInf = 0, limSup = 4, mid;
+
+    while (limInf <= limSup) {
+
+        mid = (limInf + limSup) / 2;
+
+        if (arreglo[mid] && arreglo[mid]->idBodega == id) return arreglo[mid];
+        else {
+            if (arreglo[mid] && arreglo[mid]->idBodega > id) limSup = mid - 1;
+
+            else limInf = mid + 1;
+        }
+    }
+    return NULL;
+}
+
 //verificarBodegas: Verifica que existan bodegas en el sistema
 int verificarBodegas(struct bodegas *arreglo[maxBodegas]){
 
@@ -296,13 +314,16 @@ void imprimirTodosProveedores(struct nodoProveedores *lista){
 void imprimirTodasBodegas(struct bodegas *arreglo[maxBodegas]){
 
     int i;
-    for(i = 0; i < maxBodegas; i++)
+    for(i = 0; i < maxBodegas; i++){
+        printf("posicion [%d]\n", i);
         if(arreglo[i] != NULL)
             if(arreglo[i]->idBodega != 0) printf("%i) ID: %4i  |  CAPACIDAD: %8.2f Kg | DIRECCION: %s\n", i+1, arreglo[i]->idBodega, arreglo[i]->capacidad, arreglo[i]->direccion);
+    }
+
     puts("----------------------------------------");
 }
 
-//imprimirTodasBodegas: Imprime la informacion de todos los productos que se encuentren en el ABB
+//imprimirTodosProductos: Imprime la informacion de todos los productos que se encuentren en el ABB
 void imprimirTodosProductos(struct nodoProductos *ABB){
     if (ABB){
         imprimirTodosProductos(ABB->izq);
@@ -321,7 +342,7 @@ void imprimirDetalleVenta(struct nodoVendido *lista){
     while(rec != NULL){
 
         printf("ID: %4i  |  NOMBRE: %30s |  CANTIDAD: %5i  |  PRECIO: %5i |  TOTAL %i\n", rec->detalleProducto.idProducto, rec->detalleProducto.nombre, rec->detalleProducto.cantidad,
-                                                                                                rec->detalleProducto.precio, (rec->detalleProducto.precio * rec->detalleProducto.cantidad));
+               rec->detalleProducto.precio, (rec->detalleProducto.precio * rec->detalleProducto.cantidad));
         rec = rec->sig;
     }
 }
@@ -432,6 +453,43 @@ void mostrarBodegas(struct bodegas *arreglo[maxBodegas], int opcion){
                 puts("----------------------------------------"); return;
             }
             struct bodegas *infoBodega = buscarBodega(arreglo, id);
+
+            if(infoBodega) {
+                printf("\nID: %4i  |  CAPACIDAD: %4.2f Kg | DIRECCION: %s\n", infoBodega->idBodega, infoBodega->capacidad, infoBodega->direccion);
+                puts("----------------------------------------");
+                return;
+            }
+            else puts("ERROR: Bodega no encontrada, reintente. (Ingrese 0 para salir).");
+
+        }while(true);
+
+    }else if(opcion == 2){
+
+        if(verificarBodegas(arreglo) == 0){
+            puts("\nERROR: No existen bodegas en sistema");
+            puts("----------------------------------------");
+        }else{
+            puts("");
+            imprimirTodasBodegas(arreglo);
+        }
+    }else {
+        puts("----------------------------------------"); return;
+    }
+}
+
+void mostrarBodegasOrdenada(struct bodegas *arreglo[maxBodegas], int opcion){
+
+    int id;
+
+    if(opcion == 1){
+        do{
+            printf("Ingrese id :");
+            scanf("%i", &id); getchar();
+
+            if(id == 0){
+                puts("----------------------------------------"); return;
+            }
+            struct bodegas *infoBodega = buscarBinarioBodega(arreglo, id);
 
             if(infoBodega) {
                 printf("\nID: %4i  |  CAPACIDAD: %4.2f Kg | DIRECCION: %s\n", infoBodega->idBodega, infoBodega->capacidad, infoBodega->direccion);
@@ -1608,6 +1666,31 @@ void mostrarProductoMasVendido(struct MercaditoLibre *ML){
     else puts("\nERROR: No existen registros de ventas.");
 }
 
+int comparar(const void *a, const void *b){
+
+    if (!(*(struct bodegas **)a) && !(*(struct bodegas **)b)) return 0;
+
+    else if (!(*(struct bodegas **)a)) return 1;
+
+    else if (!(*(struct bodegas **)b)) return -1;
+
+    return (*(struct bodegas **)a)->idBodega - (*(struct bodegas **)b)->idBodega;
+}
+
+void ordenarYMostrarBodegas(struct MercaditoLibre *ML){
+
+    int opcion;
+
+    qsort(ML->Bodega, maxBodegas, sizeof(struct bodegas *), comparar);
+
+    puts("\n1. Buscar una bodega por su identidicador\n2. Ver todas las bodegas en el sistema\n0. SALIR\n");
+    printf("Opcion :");
+    scanf("%i", &opcion); getchar();
+    validarOpcion(&opcion, 2);
+
+    mostrarBodegasOrdenada(ML->Bodega, opcion);
+}
+
 void opcionMasOpciones(struct MercaditoLibre *ML){
 
     int opcion, total;
@@ -1615,11 +1698,11 @@ void opcionMasOpciones(struct MercaditoLibre *ML){
 
     puts("----------------------------------------");
     puts("Que deseas realizar? (elige una opcion).\n");
-    puts("1. Mostrar producto mas vendido\n2. Total vendido en un anio\n3. Mostrar productos mayor y menor rotacion\n0. SALIR\n");
+    puts("1. Mostrar producto mas vendido\n2. Total vendido en un anio\n3. Mostrar productos mayor y menor rotacion\n4. Mostrar bodegas ordenadas\n0. SALIR\n");
     printf("Opcion :");
 
     scanf("%i", &opcion); getchar();
-    validarOpcion(&opcion, 3);
+    validarOpcion(&opcion, 4);
 
     switch(opcion){
 
@@ -1641,6 +1724,9 @@ void opcionMasOpciones(struct MercaditoLibre *ML){
             mostrarRotacionProducto(ML);
             break;
 
+        case 4:
+            ordenarYMostrarBodegas(ML);
+            break;
         default: return;
     }
 }
